@@ -41,17 +41,14 @@ HOSTS_TEMPLATE = """# GitHub520 Host Start
 # Star me: https://github.com/521xueweihan/GitHub520
 # GitHub520 Host End\n"""
 
-
-@retry(tries=3)
-def get_json(session: Any) -> Optional[list]:
-    url = 'https://raw.hellogithub.com/hosts.json'
+def get_json() -> Optional[list]:
     try:
-        rs = session.get(url)
-        data = json.loads(rs.text)
-        return data
+        with open('hosts.json', 'r') as f:
+            data = json.load(f)
+            return data
     except Exception as ex:
-        print(f"get: {url}, error: {ex}")
-        raise Exception
+        print(f"Read hosts.json error: {ex}")
+        return None
 
 
 def write_file(hosts_content: str, update_time: str) -> bool:
