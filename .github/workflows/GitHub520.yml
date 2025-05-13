@@ -29,14 +29,14 @@ jobs:
     - name: run script
       run: |
         # fetch new ip content and update readme file
-        python update_ips.py
+        python fetch_ips.py
     - name: commit
       id: commit
       run: |
         git config --global user.email sunxuebangong@gmail.com
         git config --global user.name action_bot
-        git add .
-        git commit -m "update readme content"
+        git add hosts.json README.md hosts
+        git commit -m "update hosts.json and related files"
       continue-on-error: true
     - name: Check on failures
       if: steps.commit.outputs.status == 'failure'
