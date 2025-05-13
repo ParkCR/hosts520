@@ -7,13 +7,11 @@
 #   Desc    :   公共函数
 import os
 import json
-from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Any
+from typing import Any, Optional
 from datetime import datetime, timezone, timedelta
 
 from retry import retry
 
-# 常量定义
 GITHUB_URLS = [
     'alive.github.com', 'api.github.com', 'api.individual.githubcopilot.com',
     'avatars.githubusercontent.com', 'avatars0.githubusercontent.com',
@@ -33,7 +31,7 @@ GITHUB_URLS = [
     'objects.githubusercontent.com', 'pipelines.actions.githubusercontent.com',
     'raw.githubusercontent.com', 'user-images.githubusercontent.com',
     'vscode.dev', 'education.github.com', 'private-user-images.githubusercontent.com',
-    'javdb.com','missav.com','www.javbus.com','pornhub.com','phncdn.com','cv-h.phncdn.com',
+     'javdb.com','missav.com','www.javbus.com','pornhub.com','phncdn.com','cv-h.phncdn.com',
     'supjav.com','everia.club'
 ]
 
@@ -45,124 +43,66 @@ HOSTS_TEMPLATE = """# Hosts520 Host Start
 # Star me: https://github.com/521xueweihan/GitHub520
 # Hosts520 Host End\n"""
 
-# 类型别名
-HostsEntry = Tuple[str, str]
-HostsList = List[HostsEntry]
 
-def get_absolute_path(relative_path: str) -> Path:
-    """获取绝对路径"""
-    return Path(__file__).parent / relative_path
-
-@retry(tries=3, delay=1)
-def get_json() -> Optional[HostsList]:
-    """读取hosts.json文件"""
+@retry(tries=3)
+def get_json(session: Any) -> Optional[list]:
     try:
-        json_path = get_absolute_path("hosts.json")
-        if not json_path.exists():
-            print("hosts.json not found, returning None")
-            return None
-            
-        with json_path.open('r', encoding='utf-8') as f:
+        # 从本地仓库读取 hosts.json 文件
+        output_file_path = os.path.join(os.path.dirname(__file__), 'hosts.json')
+        with open(output_file_path, 'r') as f:
             data = json.load(f)
-            if not isinstance(data, list):
-                raise ValueError("Invalid JSON format: expected list")
-            return data
-    except (json.JSONDecodeError, ValueError) as ex:
-        print(f"JSON decode error: {ex}")
-        raise
+        return data
     except Exception as ex:
-        print(f"Unexpected error reading hosts.json: {ex}")
-        raise
+        print(f"get: hosts.json, error: {ex}")
+        raise Exception
+
 
 def write_file(hosts_content: str, update_time: str) -> bool:
-    """
-    更新README.md文件
-    返回bool表示是否有变更
-    """
-    try:
-        readme_path = get_absolute_path("README.md")
-        template_path = get_absolute_path("README_template.md")
-        
-        # 确保目录存在
-        readme_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 先写入hosts文件
-        write_host_file(hosts_content)
-        
-        # 检查README是否已存在
-        if readme_path.exists():
-            old_content = readme_path.read_text(encoding='utf-8')
+    output_doc_file_path = os.path.join(os.path.dirname(__file__), "README.md")
+    template_path = os.path.join(os.path.dirname(__file__),
+                                 "README_template.md")
+    write_host_file(hosts_content)
+    if os.path.exists(output_doc_file_path):
+        with open(output_doc_file_path, "r") as old_readme_fb:
+            old_content = old_readme_fb.read()
             if old_content:
-                try:
-                    old_hosts = old_content.split("```bash")[1].split("```")[0].strip()
-                    old_hosts = old_hosts.split("# Update time:")[0].strip()
-                    new_hosts = hosts_content.split("# Update time:")[0].strip()
-                    if old_hosts == new_hosts:
-                        print("Hosts content unchanged")
-                        return False
-                except IndexError:
-                    print("Failed to parse existing README, forcing update")
+                old_hosts = old_content.split("```bash")[1].split("```")[0].strip()
+                old_hosts = old_hosts.split("# Update time:")[0].strip()
+                hosts_content_hosts = hosts_content.split("# Update time:")[
+                    0].strip()
+                if old_hosts == hosts_content_hosts:
+                    print("host not change")
+                    return False
 
-        # 更新README
-        template = template_path.read_text(encoding='utf-8')
-        updated_content = template.format(
-            hosts_str=hosts_content,
-            update_time=update_time
-        )
-        readme_path.write_text(updated_content, encoding='utf-8')
-        return True
-        
-    except Exception as ex:
-        print(f"Error updating files: {ex}")
-        raise
+    with open(template_path, "r") as temp_fb:
+        template_str = temp_fb.read()
+        hosts_content = template_str.format(hosts_str=hosts_content,
+                                            update_time=update_time)
+        with open(output_doc_file_path, "w") as output_fb:
+            output_fb.write(hosts_content)
+    return True
+
 
 def write_host_file(hosts_content: str) -> None:
-    """写入hosts文件"""
-    try:
-        hosts_path = get_absolute_path("hosts")
-        hosts_path.write_text(hosts_content, encoding='utf-8')
-        print(f"Successfully wrote hosts file to {hosts_path}")
-    except Exception as ex:
-        print(f"Failed to write hosts file: {ex}")
-        raise
+    output_file_path = os.path.join(os.path.dirname(__file__), 'hosts')
+    with open(output_file_path, "w") as output_fb:
+        output_fb.write(hosts_content)
 
-def write_json_file(hosts_list: HostsList) -> None:
-    """写入hosts.json文件"""
-    try:
-        json_path = get_absolute_path("hosts.json")
-        with json_path.open('w', encoding='utf-8') as f:
-            json.dump(hosts_list, f, ensure_ascii=False, indent=2)
-        print(f"Successfully updated hosts.json at {json_path}")
-    except Exception as ex:
-        print(f"Failed to write hosts.json: {ex}")
-        raise
 
-def write_hosts_content(content: str, content_list: HostsList) -> str:
-    """
-    生成并写入最终的hosts内容
-    返回生成的完整hosts内容
-    """
+def write_json_file(hosts_list: list) -> None:
+    output_file_path = os.path.join(os.path.dirname(__file__), 'hosts.json')
+    with open(output_file_path, "w") as output_fb:
+        json.dump(hosts_list, output_fb)
+
+
+def write_hosts_content(content: str, content_list: list) -> str:
     if not content:
-        print("Warning: empty content provided")
         return ""
-
-    try:
-        update_time = datetime.now(timezone.utc).astimezone(
-            timezone(timedelta(hours=8))).replace(microsecond=0).isoformat()
-        
-        hosts_content = HOSTS_TEMPLATE.format(
-            content=content,
-            update_time=update_time
-        )
-        
-        has_change = write_file(hosts_content, update_time)
-        if has_change:
-            write_json_file(content_list)
-        else:
-            print("No changes detected, skipping JSON update")
-            
-        return hosts_content
-        
-    except Exception as ex:
-        print(f"Error in write_hosts_content: {ex}")
-        raise
+    update_time = datetime.now(timezone.utc).astimezone(
+        timezone(timedelta(hours=8))).replace(microsecond=0).isoformat()
+    hosts_content = HOSTS_TEMPLATE.format(content=content,
+                                          update_time=update_time)
+    has_change = write_file(hosts_content, update_time)
+    if has_change:
+        write_json_file(content_list)
+    return hosts_content
