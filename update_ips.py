@@ -15,22 +15,20 @@ from common import write_hosts_content
 
 
 @retry(tries=3)
-def get_json(session: Any) -> Optional[list]:
-    url = 'https://raw.hellogithub.com/hosts.json'
+def get_json() -> Optional[list]:
     try:
-        rs = session.get(url)
-        data = json.loads(rs.text)
-        return data
+        with open('hosts.json', 'r') as f:
+            data = json.load(f)
+            return data
     except Exception as ex:
-        print(f"get: {url}, error: {ex}")
+        print(f"Read hosts.json error: {ex}")
         raise Exception
 
 
 def main() -> None:
     print('Start script.')
-    session = HTMLSession()
     content = ""
-    content_list = get_json(session)
+    content_list = get_json()
     for item in content_list:
         content += item[0].ljust(30) + item[1] + "\n"
     hosts_content = write_hosts_content(content, content_list)
