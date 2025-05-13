@@ -33,13 +33,13 @@ GITHUB_URLS = [
     'vscode.dev', 'education.github.com', 'private-user-images.githubusercontent.com'
 ]
 
-HOSTS_TEMPLATE = """# GitHub520 Host Start
+HOSTS_TEMPLATE = """# Hosts520 Host Start
 {content}
 
 # Update time: {update_time}
 # Update url: https://raw.hellogithub.com/hosts
 # Star me: https://github.com/521xueweihan/GitHub520
-# GitHub520 Host End\n"""
+# Hosts520 Host End\n"""
 
 def get_json() -> Optional[list]:
     try:
