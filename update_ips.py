@@ -1,36 +1,30 @@
 #!/usr/bin/env python
-# -*- coding:utf-8 -*-
-#
-#   Author  :   XueWeiHan
-#   E-mail  :   595666367@qq.com
-#   Date    :   2025-01-16 15:27
-#   Desc    :   GitHub Action 运行的脚本
 import json
 from typing import Any, Optional
-
-from retry import retry
-from requests_html import HTMLSession
-
 from common import write_hosts_content
 
 def get_json() -> Optional[list]:
     try:
-        with open('hosts.json', 'r') as f:
+        with open('/github/workspace/hosts.json', 'r') as f:  # 固定路径
             data = json.load(f)
-        return data
+            print(f"Loaded data: {data[:1]}...")  # 打印第一条数据
+            return data
     except Exception as ex:
-        print(f"get: hosts.json, error: {ex}")
+        print(f"Error reading hosts.json: {ex}")
         return None
 
 def main() -> None:
     print('Start script.')
-    content = ""
     content_list = get_json()
-    if content_list:
-        for item in content_list:
-            content += item[0].ljust(30) + item[1] + "\n"
-        hosts_content = write_hosts_content(content, content_list)
-        print(hosts_content)
+    if not content_list:
+        raise ValueError("hosts.json is empty or invalid")  # 强制失败
+
+    content = ""
+    for domain, ip in content_list:  # 明确解构
+        content += f"{domain.ljust(30)}{ip}\n"
+    
+    hosts_content = write_hosts_content(content, content_list)
+    print(f"Generated hosts content:\n{hosts_content[:100]}...")  # 预览
     print('End script.')
 
 if __name__ == '__main__':
